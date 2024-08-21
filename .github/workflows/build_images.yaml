@@ -11,7 +11,8 @@ on:
       - main
 
 jobs:
-  docker:
+  nightly_docker:
+    name: Build and Release Nightly Docker Images
     runs-on: ubuntu-latest
 
     strategy:
@@ -29,7 +30,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -name: Build and push
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
