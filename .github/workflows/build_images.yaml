@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         ros_distro: [humble, iron, rolling] 
 
     steps:
