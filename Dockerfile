@@ -32,4 +32,4 @@ RUN if [ "${BUILD}" = "true" ]; then \
       . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build; \
     fi
 
-WORKDIR /root
+WORKDIR /root/nav2_ws
