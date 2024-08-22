@@ -81,7 +81,7 @@ jobs:
 
           # Output the highest tag
           echo "Highest tag: $highest_tag"
-          echo "::set-output name=highest_tag::$highest_tag"
+          echo "highest_tag=$highest_tag" >> $GITHUB_OUTPUT
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -92,4 +92,4 @@ jobs:
           build-args: |
             ROS_DISTRO=${{ matrix.version.ros_distro }}
             BUILD=true
-            VERSION=${{ steps.get-tags.outputs.highest_tag }}
+            VERSION=${{ steps.get_tag.outputs.highest_tag }}
