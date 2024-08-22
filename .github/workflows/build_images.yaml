@@ -36,7 +36,7 @@ jobs:
         with:
           push: true
           pull: true
-          tags: nav2/${{ matrix.ros_distro }}:nightly
+          tags: ghcr.io/${{ github.repository }}:${{ matrix.ros_distro }}-nightly
           platforms: linux/amd64,linux/arm64
           build-args: |
             ROS_DISTRO=${{ matrix.ros_distro }}
