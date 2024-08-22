@@ -91,5 +91,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             ROS_DISTRO=${{ matrix.version.ros_distro }}
-            BUILD=false
+            BUILD=true
             VERSION=${{ steps.get-tags.outputs.highest_tag }}
