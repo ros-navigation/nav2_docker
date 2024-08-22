@@ -42,7 +42,7 @@ sudo docker run -it --net=host --privileged --volume="${XAUTHORITY}:/root/.Xauth
 Build the docker image via:
 
 ```
-sudo docker build -t nav2_dev -f Dockerfile .
+sudo docker build -t ros-navigation/nav2_docker:local -f Dockerfile .
 ```
 
 If you do NOT want to build Nav2 for distribution with the container (setup for builds with dependencies only), add `--build-arg BUILD=false`. This will not trigger a build of Nav2 along with the image.
