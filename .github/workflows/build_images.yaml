@@ -65,7 +65,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get Tag to Build
+      - name: Get Latest Tag to Build
         id: get_tag
         run: |
           # Fetch tags from the repository
@@ -82,7 +82,60 @@ jobs:
           # Output the highest tag
           echo "Highest tag: $highest_tag"
           echo "highest_tag=$highest_tag" >> $GITHUB_OUTPUT
-      - name: Build and push
+      - name: Get Latest Package Version Already Built
+        id: latest_released_package
+        run: |
+          page=1
+          per_page=100
+          all_tags=""
+          while true; do
+            # echo "Fetching page $page"
+            response=$(curl -s -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/orgs/ros-navigation/packages/container/nav2_docker/versions?per_page=$per_page&page=$page")
+
+            # echo "Response from API (Page $page):"
+            # echo "$response"
+
+            # Check if the response is empty
+            if [ "$(echo "$response" | jq length)" -eq 0 ]; then
+              # echo "No more versions found, stopping pagination."
+              break
+            fi
+
+            # Extract tags from the response
+            tags=$(echo "$response" | jq -r '.[] | .metadata.container.tags[]' | grep -E '^${{ matrix.version.ros_distro }}-${{ matrix.version.main_version }}.${{ matrix.version.distro_version }}.')
+
+            all_tags="$all_tags"$'\n'"$tags"
+            
+            # Break if the response is empty (no more pages)
+            if [ -z "$tags" ]; then
+              # echo "No more tags found, breaking loop."
+              break
+            fi
+
+            page=$((page + 1))
+          done
+
+          # echo "All collected tags:"
+          # echo "$all_tags"
+
+          # Sort and find the latest version
+          latest_version=$(echo "$all_tags" | sort -V | tail -n 1)
+
+          # Check if we successfully found the latest version
+          if [ -z "$latest_version" ]; then
+            # echo "Error: No matching package versions found."
+            exit 1
+          fi
+
+          # echo "Latest version found: $latest_version"
+          stripped_version=$(echo "$latest_version" | cut -d '-' -f 2-)
+          echo "Latest version found: $stripped_version"
+          echo "version=$stripped_version" >> $GITHUB_OUTPUT
+
+      - name: Build and Push if New
+        if: steps.latest_released_package.outputs.version != steps.get_tag.outputs.highest_tag
         uses: docker/build-push-action@v6
         with:
           push: true
