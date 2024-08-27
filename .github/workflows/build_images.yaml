@@ -89,7 +89,7 @@ jobs:
           per_page=100
           all_tags=""
           while true; do
-            # echo "Fetching page $page"
+            echo "Fetching page $page"
             response=$(curl -s -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/orgs/ros-navigation/packages/container/nav2_docker/versions?per_page=$per_page&page=$page")
@@ -99,37 +99,51 @@ jobs:
 
             # Check if the response is empty
             if [ "$(echo "$response" | jq length)" -eq 0 ]; then
-              # echo "No more versions found, stopping pagination."
+              echo "No more versions found, stopping pagination."
               break
             fi
 
             # Extract tags from the response
-            tags=$(echo "$response" | jq -r '.[] | .metadata.container.tags[]' | grep -E '^${{ matrix.version.ros_distro }}-${{ matrix.version.main_version }}.${{ matrix.version.distro_version }}.')
+            ros_distro="${{ matrix.version.ros_distro }}"
+            main_version="${{ matrix.version.main_version }}"
+            distro_version="${{ matrix.version.distro_version }}"
 
-            all_tags="$all_tags"$'\n'"$tags"
-            
+            echo "ROS_DISTRO: $ros_distro"
+            echo "MAIN_VERSION: $main_version"
+            echo "DISTRO_VERSION: $distro_version"
+
+            extracted_tags=$(echo "$response" | jq -r '.[] | .metadata.container.tags[]')
+            echo "Extracted tags: $extracted_tags"
+
+            matching_tags=$(echo "$extracted_tags" | grep -E "^${ros_distro}-${main_version}\.${distro_version}\." || true)
+            echo "Matching Tags: $matching_tags"
+
             # Break if the response is empty (no more pages)
-            if [ -z "$tags" ]; then
-              # echo "No more tags found, breaking loop."
+            if [ -z "$extracted_tags" ]; then
+              echo "No more tags found, breaking loop."
               break
             fi
 
+            all_tags="$all_tags"$'\n'"$matching_tags"
+            echo "All tags found: $all_tags"
+
             page=$((page + 1))
+            echo "new page: $page"
           done
 
-          # echo "All collected tags:"
-          # echo "$all_tags"
+          echo "All collected tags:"
+          echo "$all_tags"
 
           # Sort and find the latest version
           latest_version=$(echo "$all_tags" | sort -V | tail -n 1)
 
           # Check if we successfully found the latest version
           if [ -z "$latest_version" ]; then
-            # echo "Error: No matching package versions found."
+            echo "Error: No matching package versions found."
             exit 1
           fi
 
-          # echo "Latest version found: $latest_version"
+          echo "Latest version found: $latest_version"
           stripped_version=$(echo "$latest_version" | cut -d '-' -f 2-)
           echo "Latest version found: $stripped_version"
           echo "version=$stripped_version" >> $GITHUB_OUTPUT
