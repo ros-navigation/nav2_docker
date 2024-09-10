@@ -119,10 +119,10 @@ jobs:
             echo "Matching Tags: $matching_tags"
 
             # Break if the response is empty (no more pages)
-            if [ -z "$extracted_tags" ]; then
-              echo "No more tags found, breaking loop."
-              break
-            fi
+            # if [ -z "$extracted_tags" ]; then
+            #   echo "No more tags found, breaking loop."
+            #   break
+            # fi
 
             all_tags="$all_tags"$'\n'"$matching_tags"
             echo "All tags found: $all_tags"
