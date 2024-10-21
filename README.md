@@ -22,13 +22,13 @@ docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-1.3.1
 
 ## Local Development
 
-In an example workspace, `jazzy_ws`, execute the following:
+In an example workspace, `nav2_ws`, execute the following:
 
 ```
-sudo docker run -it --net=host --privileged -v .:/root/jazzy_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly
+sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly
 ```
 
-This will mount your workspace, `jazzy_ws` along with items needed for gazebo, rviz, and communicating with your development machine outside of Docker. You can now navigate to the workspace and build it. The build artifacts will be put into your external workspace to be used again in later instances of the Docker image so that progress is not lost between containers.
+This will mount your workspace, `nav2_ws` along with items needed for gazebo, rviz, and communicating with your development machine outside of Docker. You can now navigate to the workspace and build it. The build artifacts will be put into your external workspace to be used again in later instances of the Docker image so that progress is not lost between containers.
 
 If you wish to work fully isolated within the container and use the container's workspace to build from, run the following and navigate to `nav2_ws` to work from:
 
