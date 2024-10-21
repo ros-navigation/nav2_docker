@@ -29,7 +29,7 @@ RUN apt install cppzmq-dev ros-${ROS_DISTRO}-ros-gz -y --no-install-recommends -
 # For distribution of Nav2
 ARG BUILD=true
 RUN if [ "${BUILD}" = "true" ]; then \
-      . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build; \
+      . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --symlink-install; \
     fi
 
 WORKDIR /root/nav2_ws
