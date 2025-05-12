@@ -160,3 +160,21 @@ jobs:
             ROS_DISTRO=${{ matrix.version.ros_distro }}
             BUILD=true
             VERSION=${{ steps.get_tag.outputs.highest_tag }}
+
+  delete-untagged-images:
+    name: Delete Untagged Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          owner: 'ros-navigation'
+          package-name: 'nav2_docker'
+          package-type: 'container'
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: 'true'
+          token: ${{ secrets.GITHUB_TOKEN }}
