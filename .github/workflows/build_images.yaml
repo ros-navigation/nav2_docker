@@ -164,6 +164,7 @@ jobs:
   delete-untagged-images:
     name: Delete Untagged Images
     runs-on: ubuntu-latest
+    needs: nightly_docker
     permissions:
       contents: read
       packages: write
