@@ -140,7 +140,7 @@ jobs:
           # Check if we successfully found the latest version
           if [ -z "$latest_version" ]; then
             echo "Error: No matching package versions found."
-            # exit 1  # Comment this line out on first build of a release
+            exit 1  # Comment this line out on first build of a release
           fi
 
           echo "Latest version found: $latest_version"
