@@ -155,7 +155,7 @@ jobs:
           push: true
           pull: true
           tags: ghcr.io/${{ github.repository }}:${{ matrix.version.ros_distro }}-${{ steps.get_tag.outputs.highest_tag }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           build-args: |
             ROS_DISTRO=${{ matrix.version.ros_distro }}
             BUILD=true
