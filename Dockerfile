@@ -1,6 +1,9 @@
 ARG ROS_DISTRO=rolling
-FROM osrf/ros:${ROS_DISTRO}-desktop-full
 
+# --- STAGE 1: Builder ---
+FROM osrf/ros:${ROS_DISTRO}-desktop-full AS builder
+
+# Re-including the ROS 2 key fix comments exactly as per source
 # # Fix ROS 2 keys
 # RUN rm /etc/apt/sources.list.d/ros2-latest.list \
 #   && rm /usr/share/keyrings/ros2-latest-archive-keyring.gpg
@@ -21,7 +24,8 @@ RUN apt update \
 
 # Obtain the Nav2 dependencies to build development or distribution workspace against
 WORKDIR /root/nav2_ws
-RUN mkdir -p ~/nav2_ws/src
+RUN mkdir -p /root/nav2_ws/src
+
 ARG VERSION_TAG=latest
 RUN if [ "${ROS_DISTRO}" = "rolling" ]; then \
       git clone https://github.com/ros-planning/navigation2.git --branch main ./src/navigation2 && \
@@ -32,13 +36,13 @@ RUN if [ "${ROS_DISTRO}" = "rolling" ]; then \
       git clone https://github.com/ros-planning/navigation2.git --branch ${VERSION_TAG} ./src/navigation2; \
     fi
 
-RUN rm /etc/ros/rosdep/sources.list.d/20-default.list && rosdep init
+RUN rm -f /etc/ros/rosdep/sources.list.d/20-default.list && rosdep init
+
+# Note: apt upgrade -y is needed here for Rolling to prevent ABI mismatches
 RUN apt update && apt upgrade -y \
     && rosdep update \
-    && rosdep install -y --ignore-src --from-paths src -r --skip-keys "slam_toolbox turtlebot3_gazebo"
-
-# Get Gazebo Simulator
-RUN apt install cppzmq-dev ros-${ROS_DISTRO}-ros-gz -y --no-install-recommends --no-install-suggests || true
+    && rosdep install -y --ignore-src --from-paths src -r --skip-keys "slam_toolbox turtlebot3_gazebo" \
+    && rm -rf /var/lib/apt/lists/*
 
 # For distribution of Nav2
 ARG BUILD=true
@@ -46,5 +50,23 @@ ARG COLCON_BUILD_ARGS=""
 RUN if [ "${BUILD}" = "true" ]; then \
       . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build $COLCON_BUILD_ARGS; \
     fi
+
+# --- STAGE 2: Runtime ---
+FROM osrf/ros:${ROS_DISTRO}-desktop-full
+
+# Re-install runtime-specific dependencies and Gazebo as per source requirements
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends --no-install-suggests \
+  cppzmq-dev \
+  ros-${ROS_DISTRO}-ros-gz \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/nav2_ws
+
+# Copy ONLY the install directory from the builder
+# This removes src/, build/, and log/ while keeping the final artifacts
+COPY --from=builder /root/nav2_ws/install /root/nav2_ws/install
+
+# Update entrypoint to source the Nav2 workspace for a seamless user experience
+RUN sed -i 's|source "/opt/ros/\$ROS_DISTRO/setup.bash"|source "/opt/ros/\$ROS_DISTRO/setup.bash"\nsource "/root/nav2_ws/install/setup.bash"|g' /ros_entrypoint.sh
 
 WORKDIR /root/nav2_ws
