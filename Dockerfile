@@ -58,7 +58,7 @@ FROM osrf/ros:${ROS_DISTRO}-desktop-full
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends --no-install-suggests \
   cppzmq-dev \
   ros-${ROS_DISTRO}-ros-gz \
-  && rm -rf /var/lib/apt/lists/*
+  || true && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/nav2_ws
 
@@ -66,7 +66,9 @@ WORKDIR /root/nav2_ws
 # This removes src/, build/, and log/ while keeping the final artifacts
 COPY --from=builder /root/nav2_ws/install /root/nav2_ws/install
 
-# Update entrypoint to source the Nav2 workspace for a seamless user experience
-RUN sed -i 's|source "/opt/ros/\$ROS_DISTRO/setup.bash"|source "/opt/ros/\$ROS_DISTRO/setup.bash"\nsource "/root/nav2_ws/install/setup.bash"|g' /ros_entrypoint.sh
+# Update entrypoint to source the Nav2 workspace ONLY if the workspace was actually build
+RUN if [ -f /root/nav2_ws/install/setup.bash ]; then \
+      sed -i 's|source "/opt/ros/\$ROS_DISTRO/setup.bash"|source "/opt/ros/\$ROS_DISTRO/setup.bash"\nsource "/root/nav2_ws/install/setup.bash"|g' /ros_entrypoint.sh; \
+    fi
 
 WORKDIR /root/nav2_ws
