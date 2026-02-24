@@ -33,12 +33,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set Lowercase Repo Name
+        run: echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
           pull: true
-          tags: ghcr.io/${{ github.repository }}:${{ matrix.ros_distro }}-nightly
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.ros_distro }}-nightly
           platforms: linux/amd64
           build-args: |
             ROS_DISTRO=${{ matrix.ros_distro }}
@@ -67,6 +69,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set Lowercase Repo Name
+        run: echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
       - name: Get Latest Tag to Build
         id: get_tag
         run: |
@@ -156,7 +160,7 @@ jobs:
         with:
           push: true
           pull: true
-          tags: ghcr.io/${{ github.repository }}:${{ matrix.version.ros_distro }}-${{ steps.get_tag.outputs.highest_tag }}
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.version.ros_distro }}-${{ steps.get_tag.outputs.highest_tag }}
           platforms: linux/amd64
           build-args: |
             ROS_DISTRO=${{ matrix.version.ros_distro }}
