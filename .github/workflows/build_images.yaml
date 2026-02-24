@@ -9,6 +9,8 @@ on:
     # For developer updates to trigger
     branches:
       - main
+      - feature/optimized-docker-build
+  workflow_dispatch:
 
 jobs:
   nightly_docker:
