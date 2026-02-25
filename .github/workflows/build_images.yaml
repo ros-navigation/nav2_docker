@@ -9,7 +9,9 @@ on:
     # For developer updates to trigger
     branches:
       - main
-      - feature/optimized-docker-build
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -21,6 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         ros_distro: [humble, jazzy, kilted, rolling] 
+        target: [devel, production]
 
     steps:
       - name: Set up QEMU
@@ -40,7 +43,8 @@ jobs:
         with:
           push: true
           pull: true
-          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.ros_distro }}-nightly
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.ros_distro }}-nightly-${{ matrix.target }}
+          target: ${{ matrix.target }}
           platforms: linux/amd64
           build-args: |
             ROS_DISTRO=${{ matrix.ros_distro }}
@@ -57,6 +61,7 @@ jobs:
           - { ros_distro: 'humble', main_version: '1', distro_version: '1' }
           - { ros_distro: 'jazzy', main_version: '1', distro_version: '3' }
           - { ros_distro: 'kilted', main_version: '1', distro_version: '4' }
+        target: [devel, production]
 
     steps:
       - name: Set up QEMU
@@ -158,9 +163,10 @@ jobs:
         if: steps.latest_released_package.outputs.version != steps.get_tag.outputs.highest_tag
         uses: docker/build-push-action@v6
         with:
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           pull: true
-          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.version.ros_distro }}-${{ steps.get_tag.outputs.highest_tag }}
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.version.ros_distro }}-${{ steps.get_tag.outputs.highest_tag }}-${{ matrix.target }}
+          target: ${{ matrix.target }}
           platforms: linux/amd64
           build-args: |
             ROS_DISTRO=${{ matrix.version.ros_distro }}
