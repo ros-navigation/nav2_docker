@@ -1,16 +1,34 @@
-# Navigation2 (Nav2) Multi-Stage Dockerfile
-# This file implements a Multi-Target architecture to optimize image size 
-# without sacrificing developer tools or breaking ABI compatibility.
-
-# targets:
-#   - builder:    Compilation stage; contains all build artifacts (src, build, log).
-#   - devel:      Full-featured image for Simulation and RViz (preserves 'it just works').
-#   - production: Hardened, headless runtime for physical robot deployment.
+# Navigation2 Multi-Stage Dockerfile
+#
+# This Dockerfile implements a dual-builder, multi-target architecture to provide
+# optimized images for different use cases while maintaining full functionality.
+#
+# Available Targets:
+#   - devel:      Development image with full workspace (src/build/log/install)
+#                 Includes RViz, Gazebo, and all Nav2 packages for active development
+#
+#   - standard:   Testing and simulation image with compiled binaries only (install/)
+#                 Includes RViz, Gazebo, and all Nav2 packages without build artifacts
+#
+#   - production: Headless runtime image for robot deployment
+#                 Excludes GUI/simulation packages, includes only core navigation
+#
+# Build Examples:
+#   docker build --target devel -t nav2:devel .
+#   docker build --target standard -t nav2:standard .
+#   docker build --target production -t nav2:production .
 
 ARG ROS_DISTRO=rolling
-FROM osrf/ros:${ROS_DISTRO}-desktop-full AS builder
 
-# 1. Install system build tools
+# ==============================================================================
+# BUILDER STAGE: Full Build (for devel and standard targets)
+# ==============================================================================
+# Compiles all Nav2 packages including GUI and simulation tools
+FROM osrf/ros:${ROS_DISTRO}-desktop-full AS builder-full
+ARG ROS_DISTRO
+ARG VERSION_TAG=latest
+
+# Install build dependencies
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     ros-dev-tools \
     wget \
@@ -19,9 +37,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-rec
 WORKDIR /root/nav2_ws
 RUN mkdir -p src
 
-# 2. Workspace Setup
-# Clones Nav2 and fetches the underlay repositories required for the build.
-ARG VERSION_TAG=latest
+# Clone Navigation2 source code
 RUN if [ "${ROS_DISTRO}" = "rolling" ]; then \
       git clone https://github.com/ros-planning/navigation2.git --branch main ./src/navigation2 && \
       vcs import ./src/ < ./src/navigation2/tools/underlay.repos; \
@@ -31,8 +47,7 @@ RUN if [ "${ROS_DISTRO}" = "rolling" ]; then \
       git clone https://github.com/ros-planning/navigation2.git --branch ${VERSION_TAG} ./src/navigation2; \
     fi
 
-# 3. Dependency Management
-# 'apt upgrade' is needed for Rolling to ensure the local binaries match the latest ABI.
+# Install build dependencies via rosdep
 RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then \
       rosdep init; \
     fi && rosdep update
@@ -42,8 +57,7 @@ RUN apt update && apt upgrade -y \
        --skip-keys "slam_toolbox turtlebot3_gazebo" \
     && rm -rf /var/lib/apt/lists/*
 
-# 4. Compilation Stage
-# Supports conditional building via BUILD arg to remain compatible with legacy CI/CD scripts.
+# Build all Nav2 packages
 ARG BUILD=true
 ARG COLCON_BUILD_ARGS=""
 RUN if [ "${BUILD}" = "true" ]; then \
@@ -53,48 +67,165 @@ RUN if [ "${BUILD}" = "true" ]; then \
       mkdir -p /root/nav2_ws/install; \
     fi
 
-# --- TARGET: devel ---
-# Functionally identical to the monolithic image but ~2.4GB leaner.
-FROM osrf/ros:${ROS_DISTRO}-desktop-full AS devel
 
-# Install simulation-specific dependencies (ZMQ/Gazebo)
+# ==============================================================================
+# BUILDER STAGE: Production Build (for production target)
+# ==============================================================================
+# Compiles only core Nav2 packages, excludes GUI and simulation tools
+FROM ros:${ROS_DISTRO}-ros-base AS builder-production
+ARG ROS_DISTRO
+ARG VERSION_TAG=latest
+
+# Install build dependencies
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-    cppzmq-dev \
-    ros-${ROS_DISTRO}-ros-gz \
-    || true && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /root/nav2_ws
-
-# Copy ONLY compiled artifacts (Prunes build/src/log bloat)
-COPY --from=builder /root/nav2_ws/install /root/nav2_ws/install
-
-# Automated Workspace Sourcing
-RUN if [ -f /root/nav2_ws/install/setup.bash ]; then \
-      sed -i 's|source "/opt/ros/\$ROS_DISTRO/setup.bash"|source "/opt/ros/\$ROS_DISTRO/setup.bash"\nsource "/root/nav2_ws/install/setup.bash"|g' /ros_entrypoint.sh; \
-    fi
-
-# --- TARGET: production ---
-# Minimal footprint target for physical hardware. Strips all GUI and Sim-related bloat.
-FROM ros:${ROS_DISTRO}-ros-base AS production
-
-WORKDIR /root/nav2_ws
-
-# Temporary copy of src to resolve runtime dependencies via rosdep
-COPY --from=builder /root/nav2_ws/src /root/nav2_ws/src
-
-# Pruning non-essential runtime dependencies
-RUN apt update && rosdep update && \
-    rosdep install -y --ignore-src --from-paths src -r --rosdistro ${ROS_DISTRO} \
-    --skip-keys "rviz2 gazebo_ros_pkgs turtlebot3_gazebo slam_toolbox \
-                 nav2_rviz_plugins nav2_minimal_tb3_sim \
-                 nav2_minimal_tb4_description nav2_minimal_tb4_sim" \
+    ros-dev-tools \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Final artifact migration and cleanup
-COPY --from=builder /root/nav2_ws/install /root/nav2_ws/install
-RUN rm -rf /root/nav2_ws/src
+WORKDIR /root/nav2_ws
+RUN mkdir -p src
 
-# Automated Workspace Sourcing
-RUN if [ -f /root/nav2_ws/install/setup.bash ]; then \
-      sed -i 's|source "/opt/ros/\$ROS_DISTRO/setup.bash"|source "/opt/ros/\$ROS_DISTRO/setup.bash"\nsource "/root/nav2_ws/install/setup.bash"|g' /ros_entrypoint.sh; \
+# Clone Navigation2 source code (same as builder-full)
+RUN if [ "${ROS_DISTRO}" = "rolling" ]; then \
+      git clone https://github.com/ros-planning/navigation2.git --branch main ./src/navigation2 && \
+      vcs import ./src/ < ./src/navigation2/tools/underlay.repos; \
+    elif [ "${VERSION_TAG}" = "latest" ]; then \
+      git clone https://github.com/ros-planning/navigation2.git --branch ${ROS_DISTRO} ./src/navigation2; \
+    else \
+      git clone https://github.com/ros-planning/navigation2.git --branch ${VERSION_TAG} ./src/navigation2; \
     fi
+
+# Install build dependencies, excluding GUI/simulation packages
+RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then \
+      rosdep init; \
+    fi && rosdep update
+
+RUN apt update && apt upgrade -y \
+    && rosdep install -y --ignore-src --from-paths src -r \
+       --skip-keys "slam_toolbox \
+                    turtlebot3_gazebo \
+                    rviz2 \
+                    gazebo_ros_pkgs \
+                    nav2_rviz_plugins \
+                    nav2_bringup \
+                    nav2_system_tests \
+                    nav2_minimal_tb3_sim \
+                    nav2_minimal_tb4_description \
+                    nav2_minimal_tb4_sim" \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build core Nav2 packages only, skip GUI/simulation packages
+# Note: navigation2 metapackage is skipped as it depends on all packages including those we're excluding
+ARG BUILD=true
+ARG COLCON_BUILD_ARGS=""
+RUN if [ "${BUILD}" = "true" ]; then \
+      . /opt/ros/${ROS_DISTRO}/setup.sh \
+      && colcon build --install-base /root/nav2_ws/install \
+         --packages-skip nav2_rviz_plugins \
+                         nav2_bringup \
+                         nav2_system_tests \
+                         nav2_minimal_tb3_sim \
+                         nav2_minimal_tb4_description \
+                         nav2_minimal_tb4_sim \
+                         navigation2 \
+         $COLCON_BUILD_ARGS; \
+    else \
+      mkdir -p /root/nav2_ws/install; \
+    fi
+
+
+# ==============================================================================
+# TARGET: devel
+# ==============================================================================
+# Development image with full workspace for active Nav2 development
+# Includes: src/, build/, log/, install/ directories
+FROM osrf/ros:${ROS_DISTRO}-desktop-full AS devel
+ARG ROS_DISTRO
+
+# Copy ROS dependencies from builder to ensure ABI compatibility
+COPY --from=builder-full /opt/ros/${ROS_DISTRO} /opt/ros/${ROS_DISTRO}
+
+# Install minimal system-level dependencies
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+    cppzmq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/nav2_ws
+COPY --from=builder-full /root/nav2_ws /root/nav2_ws
+
+# Configure workspace to auto-source on container start
+RUN echo 'source "/root/nav2_ws/install/setup.bash"' >> /ros_entrypoint.sh
+
+
+# ==============================================================================
+# TARGET: standard
+# ==============================================================================
+# Testing and simulation image with compiled binaries only
+# Includes: install/ directory (no src/build/log)
+FROM osrf/ros:${ROS_DISTRO}-desktop-full AS standard
+ARG ROS_DISTRO
+
+# Copy ROS dependencies from builder to ensure ABI compatibility
+COPY --from=builder-full /opt/ros/${ROS_DISTRO} /opt/ros/${ROS_DISTRO}
+
+# Install minimal system-level dependencies
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+    cppzmq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/nav2_ws
+COPY --from=builder-full /root/nav2_ws/install /root/nav2_ws/install
+
+# Configure workspace to auto-source on container start
+RUN echo 'source "/root/nav2_ws/install/setup.bash"' >> /ros_entrypoint.sh
+
+
+# ==============================================================================
+# TARGET: production
+# ==============================================================================
+# Headless runtime image for robot deployment
+# Includes: Core navigation packages only (no GUI/simulation)
+FROM ros:${ROS_DISTRO}-ros-base AS production
+ARG ROS_DISTRO
+
+WORKDIR /root/nav2_ws
+
+# Copy compiled core navigation packages from production builder
+COPY --from=builder-production /root/nav2_ws/install /root/nav2_ws/install
+
+# Copy source temporarily for rosdep dependency resolution
+COPY --from=builder-production /root/nav2_ws/src /root/nav2_ws/src
+
+# Remove skipped packages from source to prevent installing their dependencies
+RUN cd /root/nav2_ws/src/navigation2 && \
+    rm -rf nav2_rviz_plugins nav2_bringup nav2_system_tests \
+           nav2_minimal_tb3_sim nav2_minimal_tb4_description nav2_minimal_tb4_sim navigation2
+
+# Install runtime dependencies for core navigation packages only
+# Explicitly skip GUI, Gazebo, and simulation dependencies
+RUN apt update && \
+    if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then \
+      rosdep init; \
+    fi && rosdep update && \
+    rosdep install -y --ignore-src --from-paths src -r --rosdistro ${ROS_DISTRO} \
+    --skip-keys "rviz2 \
+                 gazebo_ros_pkgs \
+                 ros_gz \
+                 ros_gz_sim \
+                 ros_gz_bridge \
+                 turtlebot3_gazebo \
+                 slam_toolbox \
+                 nav2_rviz_plugins \
+                 nav2_bringup \
+                 nav2_system_tests \
+                 nav2_minimal_tb3_sim \
+                 nav2_minimal_tb4_description \
+                 nav2_minimal_tb4_sim \
+                 libqt5-core libqt5gui5 libqt5widgets5 \
+                 libgl1-mesa-dri mesa-utils x11-common" \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/share/doc /usr/share/man /root/.ros \
+    && rm -rf /root/nav2_ws/src
+
+# Configure workspace to auto-source on container start
+RUN echo 'source "/root/nav2_ws/install/setup.bash"' >> /ros_entrypoint.sh

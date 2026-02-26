@@ -10,50 +10,96 @@ Currently supported distributions:
 
 Each distribution has two images that are generated: bleeding edge based on the status of the Nav2 branch associated with the distribution (nightly) and the latest officially released version (ex `1.2.15`).
 
+## Image Tiers
+
+Each distribution generates three distinct image targets to balance size and utility:
+
+| Tier | Tag Suffix | Content | Primary Use Case | Approx. Size |
+| :--- | :--- | :--- | :--- | :--- |
+| **Development** | `-devel` | Full workspace (`src`, `build`), GUI tools, and Sim. | Active coding and recompiling within the container. | ~9.5GB |
+| **Standard** | `-standard` | Compiled binaries (`install`), GUI tools, and Sim. | Testing, CI validation, and Gazebo simulations. | ~7.8GB |
+| **Production** | `-production`| Core navigation only, **Headless** (No RViz/Gazebo/Qt). | Deployment on physical robot hardware. | ~4.8GB |
+
 ## How to Use Provided Containers
 
-The images can be found in `Packages` on the right-hand side of the repository [or at this link](https://github.com/ros-navigation/nav2_docker/pkgs/container/nav2_docker). You'll see the images available, such as `jazzy-1.3.1`, `iron-nightly`, and `rolling-nightly`.
+The images can be found in `Packages` on the right-hand side of the repository [or at this link](https://github.com/ros-navigation/nav2_docker/pkgs/container/nav2_docker). 
 
-These can be pulled from via the following and used for development directly or as the base image of deployments by making it your base image `FROM ros-navigation/nav2_docker:jazzy-1.3.1`.
+To optimize for different robotics workflows, we provide three specialized tiers. **You must specify the tier suffix** to ensure you are pulling the correct environment for your needs.
 
-```
-docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-1.3.1
+### Naming Convention
+* **Development (`-devel`):** Includes full workspace (`src`, `build`, `log`), GUI tools, and Simulation. Best for Nav2 contributors.
+* **Standard (`-standard`):** Includes compiled binaries (`install`), GUI tools, and Simulation. Best for testing and development with simulations.
+* **Production (`-production`):** Core navigation packages only (excludes `nav2_rviz_plugins`, `nav2_bringup`, simulation packages). Headless runtime optimized for physical robot deployment.
+
+### Pulling an Image
+```bash
+# For Nav2 Developers (cloned source included)
+docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-devel
+
+# For Simulation and Testing (Desktop-Full tools included)
+docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-standard
+
+# For Robot Deployment (Headless/Smallest footprint)
+docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-production
 ```
 
 ## Local Development
 
-In an example workspace, `nav2_ws`, execute the following:
+We provide two primary workflows depending on whether you are developing your own robot code or contributing to Navigation2 itself:
+
+### Option 1: Mounting a Local Workspace
+
+Use the Standard image if you have a local nav2_ws and want to use the container's pre-installed dependencies and GUI tools (RViz/Gazebo).
+```
+sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-standard
+```
+This mounts your local workspace into the container. Build artifacts will persist on your host machine so progress is not lost.
+
+### Option 2: Isolated Development (Nav2 Contributors)
+
+Use the Development image if you wish to work fully isolated within the container using the Nav2 source code already cloned in `nav2_ws` and prepared in the image.
 
 ```
-sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly
+sudo docker run -it --net=host --privileged --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-devel
 ```
-
-This will mount your workspace, `nav2_ws` along with items needed for gazebo, rviz, and communicating with your development machine outside of Docker. You can now navigate to the workspace and build it. The build artifacts will be put into your external workspace to be used again in later instances of the Docker image so that progress is not lost between containers.
-
-If you wish to work fully isolated within the container and use the container's workspace to build from, run the following and navigate to `nav2_ws` to work from:
-
-```
-sudo docker run -it --net=host --privileged --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly
-```
-
+Navigate to /root/nav2_ws within the container to find the complete source, build, and install tree ready for modification.
 
 ## Building for Local Use
 
-Build the docker image via:
+You can build specific image tiers locally by using the `--target` flag. The Dockerfile uses a dual-builder architecture: `builder-full` compiles all packages (for devel/standard), while `builder-production` compiles only core navigation packages (for production).
+
+### Building Specific Tiers
+To build a specific version locally from the root of this repository:
+
+```bash
+# Build the lean Production image (Headless - core navigation only)
+sudo docker build --target production -t nav2:local-prod .
+
+# Build the full Development image (Includes source code and all packages)
+sudo docker build --target devel -t nav2:local-devel .
+
+# Build the Standard image (Includes GUI tools/Sim, no source)
+sudo docker build --target standard -t nav2:local-standard .
 
 ```
-sudo docker build -t ros-navigation/nav2_docker:local -f Dockerfile .
+
+**Note:** The production image excludes visualization and simulation packages (`nav2_rviz_plugins`, `nav2_bringup`, `nav2_system_tests`, TurtleBot simulation packages) to minimize size. All core navigation functionality (controllers, planners, costmaps, localization, etc.) is included.
+
+### Build Arguments
+
+You can customize the build process using the `--build-arg` flag to suit your specific requirements:
+
+* **`ROS_DISTRO`**: Specify the ROS 2 distribution (e.g., `--build-arg ROS_DISTRO=humble`).
+* **`BUILD=false`**: Use this if you do **not** want to compile Nav2 (sets up the environment with dependencies only).
+* **`COLCON_BUILD_ARGS="..."`**: Pass custom arguments to the colcon build process (e.g., `--build-arg COLCON_BUILD_ARGS="--symlink-install"`).
+
+### Refreshing the Base
+
+If the upstream OSRF images have changed significantly, it is recommended to pull the latest base image before building to ensure you have the latest security patches and core updates:
+
+```bash
+# Example for Rolling
+sudo docker pull osrf/ros:rolling-desktop-full
+sudo docker build -t nav2:local -f Dockerfile .
 ```
-
-If you do NOT want to build Nav2 for distribution with the container (setup for builds with dependencies only), add `--build-arg BUILD=false`. This will not trigger a build of Nav2 along with the image.
-
-Occasionally, may need to update the base and rebuild when it diverges significantly.
-
-Additionally, if you want to build with customized arguments, you can add your build arguments as in the example `--build-arg COLCON_BUILD_ARGS="--symlink-install"`.
-
-```
-sudo docker pull osrf/ros:${ROS_DISTRO}-desktop-full
-sudo docker build -t ros-navigation/nav2_docker:local -f Dockerfile .
-```
-
 From that point on, the instructions above for local development use may be followed.
