@@ -166,6 +166,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           pull: true
           tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.version.ros_distro }}-${{ steps.get_tag.outputs.highest_tag }}-${{ matrix.target }}
           target: ${{ matrix.target }}

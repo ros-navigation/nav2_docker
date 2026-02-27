@@ -145,11 +145,6 @@ ARG ROS_DISTRO
 # Copy ROS dependencies from builder to ensure ABI compatibility
 COPY --from=builder-full /opt/ros/${ROS_DISTRO} /opt/ros/${ROS_DISTRO}
 
-# Install minimal system-level dependencies
-RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-    cppzmq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /root/nav2_ws
 COPY --from=builder-full /root/nav2_ws /root/nav2_ws
 
@@ -167,11 +162,6 @@ ARG ROS_DISTRO
 
 # Copy ROS dependencies from builder to ensure ABI compatibility
 COPY --from=builder-full /opt/ros/${ROS_DISTRO} /opt/ros/${ROS_DISTRO}
-
-# Install minimal system-level dependencies
-RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-    cppzmq-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/nav2_ws
 COPY --from=builder-full /root/nav2_ws/install /root/nav2_ws/install
