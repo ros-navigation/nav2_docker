@@ -62,7 +62,7 @@ ARG BUILD=true
 ARG COLCON_BUILD_ARGS=""
 RUN if [ "${BUILD}" = "true" ]; then \
       . /opt/ros/${ROS_DISTRO}/setup.sh \
-      && colcon build --install-base /root/nav2_ws/install $COLCON_BUILD_ARGS; \
+      && colcon build $COLCON_BUILD_ARGS; \
     else \
       mkdir -p /root/nav2_ws/install; \
     fi
@@ -120,7 +120,7 @@ ARG BUILD=true
 ARG COLCON_BUILD_ARGS=""
 RUN if [ "${BUILD}" = "true" ]; then \
       . /opt/ros/${ROS_DISTRO}/setup.sh \
-      && colcon build --install-base /root/nav2_ws/install \
+      && colcon build \
          --packages-skip nav2_rviz_plugins \
                          nav2_bringup \
                          nav2_system_tests \
