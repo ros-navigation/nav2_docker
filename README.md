@@ -26,11 +26,6 @@ The images can be found in `Packages` on the right-hand side of the repository [
 
 To optimize for different robotics workflows, we provide three specialized tiers. **You must specify the tier suffix** to ensure you are pulling the correct environment for your needs.
 
-### Naming Convention
-* **Development (`-devel`):** Includes full workspace (`src`, `build`, `log`), GUI tools, and Simulation. Best for Nav2 contributors.
-* **Standard (`-standard`):** Includes compiled binaries (`install`), GUI tools, and Simulation. Best for testing and development with simulations.
-* **Production (`-production`):** Core navigation packages only (excludes `nav2_rviz_plugins`, `nav2_bringup`, simulation packages). Headless runtime optimized for physical robot deployment.
-
 ### Pulling an Image
 ```bash
 # For Nav2 Developers (cloned source included)
@@ -45,24 +40,13 @@ docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-production
 
 ## Local Development
 
-We provide two primary workflows depending on whether you are developing your own robot code or contributing to Navigation2 itself:
-
-### Option 1: Mounting a Local Workspace
+For local development, mount your workspace into the container to ensure your changes persist on your host machine. This prevents data loss if the container stops or your system reboots.
 
 Use the Standard image if you have a local nav2_ws and want to use the container's pre-installed dependencies and GUI tools (RViz/Gazebo).
 ```
 sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-standard
 ```
 This mounts your local workspace into the container. Build artifacts will persist on your host machine so progress is not lost.
-
-### Option 2: Isolated Development (Nav2 Contributors)
-
-Use the Development image if you wish to work fully isolated within the container using the Nav2 source code already cloned in `nav2_ws` and prepared in the image.
-
-```
-sudo docker run -it --net=host --privileged --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-devel
-```
-Navigate to /root/nav2_ws within the container to find the complete source, build, and install tree ready for modification.
 
 ## Building for Local Use
 
