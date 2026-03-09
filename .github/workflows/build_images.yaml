@@ -203,7 +203,6 @@ jobs:
 
           # Update the badge in README.md
           sed -i "s/Last%20Build-[0-9]\{4\}--[0-9]\{2\}--[0-9]\{2\}/Last%20Build-${CURRENT_DATE//-/--}/g" README.md
-
           echo "Updated badge to: $CURRENT_DATE"
 
       - name: Commit and push changes
