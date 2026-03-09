@@ -8,10 +8,9 @@ on:
   workflow_dispatch:  # TODO: Remove before merging - for testing only
   push:
     # For developer updates to trigger
+    # TODO: TESTING ONLY - Change back to 'main' before merging
     branches:
-      - main
-    paths-ignore:
-      - 'README.md'
+      - '**'  # Trigger on all branches for testing
   pull_request:
     branches:
       - main
