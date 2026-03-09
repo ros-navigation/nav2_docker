@@ -1,5 +1,7 @@
 # nav2_docker
 
+![Build Status](https://img.shields.io/badge/Last%20Build-2026--03--09-blue) ![Workflow Status](https://img.shields.io/badge/CI-Active-success)
+
 Nav2 distributed docker containers for active ROS 2 distributions for development and deployment. For a guide for using Docker for development, see [our tutorial at docs.nav2.org](https://docs.nav2.org/tutorials/docs/docker_dev.html).
 
 Currently supported distributions:
