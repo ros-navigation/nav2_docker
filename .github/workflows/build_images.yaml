@@ -189,26 +189,26 @@ jobs:
     # TODO: TESTING ONLY - Uncomment this line before merging
     # needs: [nightly_docker, release_docker]
     if: github.event_name != 'pull_request'
-    
+
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Update build date badge in README
         run: |
           # Get current date in YYYY-MM-DD format
           CURRENT_DATE=$(date -u +'%Y-%m-%d')
-          
+
           # Update the badge in README.md
           sed -i "s/Last%20Build-[0-9]\{4\}--[0-9]\{2\}--[0-9]\{2\}/Last%20Build-${CURRENT_DATE//-/--}/g" README.md
           
           echo "Updated badge to: $CURRENT_DATE"
-      
+
       - name: Commit and push changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
