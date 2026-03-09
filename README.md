@@ -40,13 +40,24 @@ docker pull ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-production
 
 ## Local Development
 
-For local development, mount your workspace into the container to ensure your changes persist on your host machine. This prevents data loss if the container stops or your system reboots.
+We provide two primary workflows depending on whether you want to mount your own workspace or work with an isolated container environment:
+
+### Option 1: Mounting a Local Workspace
 
 Use the Standard image if you have a local nav2_ws and want to use the container's pre-installed dependencies and GUI tools (RViz/Gazebo).
 ```
 sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-standard
 ```
 This mounts your local workspace into the container. Build artifacts will persist on your host machine so progress is not lost.
+
+### Option 2: Isolated Development
+
+Use the Development image if you wish to work fully isolated within the container using the Nav2 source code already cloned in `nav2_ws` and prepared in the image.
+
+```
+sudo docker run -it --net=host --privileged --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-devel
+```
+Navigate to /root/nav2_ws within the container to find the complete source, build, and install tree ready for modification.
 
 ## Building for Local Use
 
