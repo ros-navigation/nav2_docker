@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [humble, jazzy, kilted, rolling] 
+        ros_distro: [rolling]
         target: [devel, standard, production]
 
     steps:
