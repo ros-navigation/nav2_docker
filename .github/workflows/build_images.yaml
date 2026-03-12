@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [humble, jazzy, kilted, rolling] 
+        ros_distro: ${{ github.event_name == 'pull_request' && fromJSON('["rolling"]') || fromJSON('["humble", "jazzy", "kilted", "rolling"]') }}
         target: [devel, standard, production]
 
     steps:
