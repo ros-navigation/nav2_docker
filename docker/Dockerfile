@@ -199,6 +199,7 @@ RUN apt update && \
       rosdep init; \
     fi && rosdep update && \
     rosdep install -y --ignore-src --from-paths src -r --rosdistro ${ROS_DISTRO} \
+    --dependency-types=exec \
     --skip-keys "rviz2 \
                  gazebo_ros_pkgs \
                  ros_gz \
