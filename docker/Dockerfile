@@ -56,7 +56,6 @@ RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then \
 
 RUN apt update && apt upgrade -y \
     && rosdep install -y --ignore-src --from-paths src -r \
-       -t build -t buildtool -t build_export -t buildtool_export -t exec \
        --skip-keys "slam_toolbox turtlebot3_gazebo" \
     && rm -rf /var/lib/apt/lists/*
 
@@ -65,7 +64,7 @@ ARG BUILD=true
 ARG COLCON_BUILD_ARGS=""
 RUN if [ "${BUILD}" = "true" ]; then \
       . /opt/ros/${ROS_DISTRO}/setup.sh \
-      && colcon build --cmake-args -DBUILD_TESTING=OFF $COLCON_BUILD_ARGS; \
+      && colcon build $COLCON_BUILD_ARGS; \
     else \
       mkdir -p /root/nav2_ws/install; \
     fi
