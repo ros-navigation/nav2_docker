@@ -18,7 +18,6 @@ on:
       - 'README.md'
 
 jobs:
-
   # Defines shared release versions
   # Update release versions here when new Nav2 releases drop.
   config:
