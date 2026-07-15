@@ -76,6 +76,7 @@ jobs:
           load: ${{ github.event_name == 'pull_request' }}
           # always pull the latest base image to pick up upstream security patches
           pull: true
+          no-cache: true
           tags: ghcr.io/${{ env.REPO_LOWER }}:${{ matrix.ros_distro }}-nightly-${{ matrix.target }}${{ inputs.arch_suffix }}
           target: ${{ matrix.target }}
           platforms: ${{ inputs.platform }}
