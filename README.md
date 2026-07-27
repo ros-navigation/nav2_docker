@@ -7,7 +7,7 @@ Nav2 distributed docker containers for active ROS 2 distributions for developmen
 Currently supported distributions:
 - Humble
 - Jazzy
-- Kilted
+- Lyrical
 - Rolling
 
 Each distribution has two images that are generated: bleeding edge based on the status of the Nav2 branch associated with the distribution (nightly) and the latest officially released version (ex `1.2.15`).
