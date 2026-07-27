@@ -30,6 +30,11 @@ FROM osrf/ros:${ROS_DISTRO}-desktop-full AS builder-full
 ARG ROS_DISTRO
 ARG VERSION_TAG=latest
 
+# Switch to ROS testing repository for pre-release distributions
+RUN if [ "${ROS_DISTRO}" = "lyrical" ]; then \
+      sed -i 's|packages.ros.org/ros2/|packages.ros.org/ros2-testing/|g' /etc/apt/sources.list.d/* ; \
+    fi
+
 # Install build dependencies
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     ros-dev-tools \
@@ -76,6 +81,11 @@ RUN if [ "${BUILD}" = "true" ]; then \
 FROM ros:${ROS_DISTRO}-ros-base AS builder-production
 ARG ROS_DISTRO
 ARG VERSION_TAG=latest
+
+# Switch to ROS testing repository for pre-release distributions
+RUN if [ "${ROS_DISTRO}" = "lyrical" ]; then \
+      sed -i 's|packages.ros.org/ros2/|packages.ros.org/ros2-testing/|g' /etc/apt/sources.list.d/* ; \
+    fi
 
 # Install build dependencies
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
@@ -180,6 +190,11 @@ RUN echo 'source "/root/nav2_ws/install/setup.bash"' >> /ros_entrypoint.sh
 # Includes: Core navigation packages only (no GUI/simulation)
 FROM ros:${ROS_DISTRO}-ros-base AS production
 ARG ROS_DISTRO
+
+# Switch to ROS testing repository for pre-release distributions
+RUN if [ "${ROS_DISTRO}" = "lyrical" ]; then \
+      sed -i 's|packages.ros.org/ros2/|packages.ros.org/ros2-testing/|g' /etc/apt/sources.list.d/* ; \
+    fi
 
 WORKDIR /root/nav2_ws
 
