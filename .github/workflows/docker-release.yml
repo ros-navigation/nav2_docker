@@ -33,7 +33,7 @@ jobs:
           echo '[
             {"ros_distro":"humble","main_version":"1","distro_version":"1"},
             {"ros_distro":"jazzy","main_version":"1","distro_version":"3"},
-            {"ros_distro":"kilted","main_version":"1","distro_version":"4"}
+            {"ros_distro":"lyrical","main_version":"1","distro_version":"5"}
           ]' >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
@@ -49,7 +49,7 @@ jobs:
       arch_suffix: ""
       # On PRs, only build standard+rolling to keep CI fast. Full matrix runs on merge.
       targets: ${{ github.event_name == 'pull_request' && '["standard"]' || '["devel","standard","production"]' }}
-      nightly_distros: ${{ github.event_name == 'pull_request' && '["rolling"]' || '["humble","jazzy","kilted","rolling"]' }}
+      nightly_distros: ${{ github.event_name == 'pull_request' && '["rolling"]' || '["humble","jazzy","lyrical","rolling"]' }}
       release_versions: ${{ needs.config.outputs.release_versions }}
       push: true
 
@@ -66,7 +66,7 @@ jobs:
       dockerfile: docker/Dockerfile.arm64
       arch_suffix: "-arm64"
       targets: '["standard"]'
-      nightly_distros: '["humble","jazzy","kilted","rolling"]'
+      nightly_distros: '["humble","jazzy","lyrical","rolling"]'
       release_versions: ${{ needs.config.outputs.release_versions }}
       push: true
 
