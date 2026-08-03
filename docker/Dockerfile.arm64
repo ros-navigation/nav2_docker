@@ -22,11 +22,6 @@ FROM ros:${ROS_DISTRO}-ros-base AS builder-arm64
 ARG ROS_DISTRO
 ARG VERSION_TAG=latest
 
-# Switch to ROS testing repository for pre-release distributions
-RUN if [ "${ROS_DISTRO}" = "lyrical" ]; then \
-      sed -i 's|packages.ros.org/ros2/|packages.ros.org/ros2-testing/|g' /etc/apt/sources.list.d/* ; \
-    fi
-
 # Install build dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ros-dev-tools \
