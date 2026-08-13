@@ -19,7 +19,7 @@ Each distribution generates three distinct image targets to balance size and uti
 | Tier | Tag Suffix | Content | Primary Use Case | Approx. Size |
 | :--- | :--- | :--- | :--- | :--- |
 | **Development** | `-devel` | Full workspace (`src`, `build`), GUI tools, and Sim. | Active coding and recompiling within the container. | ~9.5GB |
-| **Standard** | `-standard` | Compiled binaries (`install`), GUI tools, and Sim. | Testing, CI validation, and Gazebo simulations. | ~7.8GB |
+| **Standard** | `-standard` | Compiled binaries (`install`), GUI tools, and Sim. | Runtime testing, CI validation, and Gazebo simulations. | ~7.8GB |
 | **Production** | `-production`| Core navigation only, **Headless** (No RViz/Gazebo/Qt). | Deployment on physical robot hardware. | ~4.8GB |
 | **Standard ARM64** | `-standard-arm64` | Compiled binaries (`install`), core Nav2 packages. | Nav2 development and deployment on ARM64 hardware. | - |
 
@@ -56,11 +56,25 @@ We provide two primary workflows depending on whether you want to mount your own
 
 ### Option 1: Mounting a Local Workspace
 
-Use the Standard image if you have a local nav2_ws and want to use the container's pre-installed dependencies and GUI tools (RViz/Gazebo).
+Use the Development image when compiling a local Nav2 workspace. The Standard
+image is binary-only and does not retain build-only system dependencies from
+the builder stage.
+
+If the mounted source differs from the branch used to build the image, install
+its declared dependencies with `rosdep` before compiling.
+
 ```
-sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-standard
+sudo docker run -it --net=host --privileged -v .:/root/nav2_ws --volume="${XAUTHORITY}:/root/.Xauthority" --env="DISPLAY=$DISPLAY" -v="/tmp/.gazebo/:/root/.gazebo/" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --shm-size=1000mb ghcr.io/ros-navigation/nav2_docker:jazzy-nightly-devel
 ```
 This mounts your local workspace into the container. Build artifacts will persist on your host machine so progress is not lost.
+
+For a source snapshot with different dependencies, run:
+
+```
+rosdep update
+rosdep install --from-paths src --ignore-src -r -y
+colcon build
+```
 
 ### Option 2: Isolated Development
 
