@@ -114,16 +114,28 @@ jobs:
       - name: Get Latest Tag to Build
         id: get_tag
         run: |
-          # Fetch tags from the repository
-          tags=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/ros-navigation/navigation2/tags | \
-            jq -r '.[].name')
+          # # Fetch tags from the repository
+          # tags=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          #   https://api.github.com/repos/ros-navigation/navigation2/tags | \
+          #   jq -r '.[].name')
 
-          # Get the filtered set from the release
-          filtered_tags=$(echo "$tags" | grep '^${{ matrix.version.main_version }}\.${{ matrix.version.distro_version }}\.[0-9]*$')
+          # # Get the filtered set from the release
+          # filtered_tags=$(echo "$tags" | grep '^${{ matrix.version.main_version }}\.${{ matrix.version.distro_version }}\.[0-9]*$')
 
-          # Find the highest tag
-          highest_tag=$(echo "$filtered_tags" | sort -V | tail -n 1)
+          # # Find the highest tag
+          # highest_tag=$(echo "$filtered_tags" | sort -V | tail -n 1)
+
+          # Use git ls-remote rather than the REST API: it returns every tag (no 30-item page limit)
+          # and does not consume API rate limit.
+          highest_tag=$(git ls-remote --tags --refs https://github.com/ros-navigation/navigation2.git \
+            | sed 's#.*refs/tags/##' \
+            | grep -E '^${{ matrix.version.main_version }}\.${{ matrix.version.distro_version }}\.[0-9]+$' \
+            | sort -V | tail -n 1 || true)
+
+          if [ -z "$highest_tag" ]; then
+            echo "::error::No navigation2 tag matching ${{ matrix.version.main_version }}.${{ matrix.version.distro_version }}.x"
+            exit 1
+          fi
 
           # Output the highest tag
           echo "Highest tag: $highest_tag"
